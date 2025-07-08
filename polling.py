@@ -11,29 +11,6 @@ def input_file(file_path: str):
     return data, columns
 
 
-def start(parse_args):
-    data = None
-    try:
-        data, columns = input_file(parse_args.file)
-    except FileNotFoundError:
-        return print(const.file_error)
-    
-
-    where_kwargs = parse_args.where
-    aggregate_kwargs = parse_args.aggregate
-
-    if where_kwargs is None and aggregate_kwargs is None: 
-        return show(data, columns)
-
-    if where_kwargs is not None and aggregate_kwargs is not None:
-        data = where(data, where_kwargs, columns, is_show = False)
-    else:
-        where(data, where_kwargs, columns)
-    
-    aggregate(data, aggregate_kwargs, columns)
-
-
-
 def find_column(command_kwargs: str, columns: list) -> str:
     for column in columns:
         if column == command_kwargs[:len(column)]:
@@ -44,7 +21,7 @@ def find_column(command_kwargs: str, columns: list) -> str:
 
 def show(data: list, columns: list):
     columns = {columns_i : columns_i for columns_i in columns}
-    return print(tabulate(data, headers=columns, tablefmt="grid", floatfmt=".2f"))
+    return print(tabulate(data[:30], headers=columns, tablefmt="grid", floatfmt=".2f") + const.show_info)
 
 def avg(data: list, chosen_column: str, param: str):
     s = 0
@@ -136,6 +113,28 @@ def where(data: list, where_kwargs: str, columns: list, is_show = True) -> None:
         if len(output_data) > 0 : 
             return print(tabulate(output_data, headers=columns, tablefmt="grid", floatfmt=".2f"))
         else: 
-            return print(const.no_output_data)
+            return print(const.no_data)
     else:
         return [{columns[i] : values[i] for i in range(len(columns))} for values in output_data]
+    
+def start(parse_args):
+    data = None
+    try:
+        data, columns = input_file(parse_args.file)
+    except FileNotFoundError:
+        return print(const.file_error)
+    
+
+    where_kwargs = parse_args.where
+    aggregate_kwargs = parse_args.aggregate
+
+    if where_kwargs is None and aggregate_kwargs is None: 
+        return show(data, columns)
+
+    if where_kwargs is not None and aggregate_kwargs is not None:
+        data = where(data, where_kwargs, columns, is_show = False)
+    else:
+        where(data, where_kwargs, columns)
+        
+    if data is not None:
+        aggregate(data, aggregate_kwargs, columns)
