@@ -11,7 +11,8 @@ def input_file(file_path: str):
     return data, columns
 
 
-def start(parse_args, data = None):
+def start(parse_args):
+    data = None
     try:
         data, columns = input_file(parse_args.file)
     except FileNotFoundError:
@@ -25,7 +26,7 @@ def start(parse_args, data = None):
         return show(data, columns)
 
     if where_kwargs is not None and aggregate_kwargs is not None:
-        data = where(data, where_kwargs, columns, show = False)
+        data = where(data, where_kwargs, columns, is_show = False)
     else:
         where(data, where_kwargs, columns)
     
@@ -42,6 +43,7 @@ def find_column(command_kwargs: str, columns: list) -> str:
 
 
 def show(data: list, columns: list):
+    columns = {columns_i : columns_i for columns_i in columns}
     return print(tabulate(data, headers=columns, tablefmt="grid", floatfmt=".2f"))
 
 def avg(data: list, chosen_column: str, param: str):
@@ -91,7 +93,7 @@ def aggregate(data: list, aggregate_kwargs: str, columns: list) -> None:
 
     if output_value is not None: print(tabulate(output_value, headers=[param], tablefmt="grid", floatfmt=".2f"))
 
-def where(data: list, where_kwargs: str, columns: list, show = True) -> None:
+def where(data: list, where_kwargs: str, columns: list, is_show = True) -> None:
     if where_kwargs is None: return
 
     chosen_column = find_column(where_kwargs, columns)
@@ -130,7 +132,7 @@ def where(data: list, where_kwargs: str, columns: list, show = True) -> None:
             except ValueError:
                 return print(const.where_error.format(command, chosen_column))
                 
-    if show:
+    if is_show:
         if len(output_data) > 0 : 
             return print(tabulate(output_data, headers=columns, tablefmt="grid", floatfmt=".2f"))
         else: 
