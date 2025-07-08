@@ -1,8 +1,10 @@
-usage: main.py [-h] [--file FILE] [--where WHERE] [--aggregate AGGREGATE]
+# Data Processing Script
 
-options:
-  -h, --help            show this help message and exit
-  --file FILE           file selection REQUIRED
-  --where WHERE         filtering in the format "COLUMN_NAME[>/</=]PARAMETER"
-  --aggregate AGGREGATE
-                        aggregation in the format "COLUMN_NAME=[avg/min/max]"
+A Python script for filtering and aggregating data from a *.csv file.
+
+## Usage
+
+To use the script, you can run it from the command line with various options:
+
+```bash
+python main.py --file <file_path> [--where <filter_condition>] [--aggregate <aggregate_condition>]
