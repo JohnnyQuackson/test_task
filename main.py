@@ -4,11 +4,14 @@ from tabulate import tabulate
 import const
 
 def input_file(file_path: str):
-    f = open(file_path)
-    columns = list(csv.DictReader(f).__next__().keys())
-    f.close()
-    
-    return file_path, columns
+    with open(file_path, encoding='utf-8') as f:
+        columns = list(csv.DictReader(f).__next__().keys())
+
+    with open(file_path, encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        data = [list(row.values()) for row in reader]
+
+    return [{columns[i] : values[i] for i in range(len(columns))} for values in data], columns
 
 
 def find_column(command_kwargs: str, columns: list) -> str:
@@ -19,145 +22,132 @@ def find_column(command_kwargs: str, columns: list) -> str:
     return None
 
 
-def show(file: str, columns: list):
-    f = open(file)
-    reader = csv.DictReader(f)
-    data = [list(row.values()) for row in reader]
+def show(data: list, columns: list):
+    
 
-    print(tabulate(data, headers=columns, tablefmt="grid"), floatfmt=".2f")
+    print(tabulate(data, headers=columns, tablefmt="grid", floatfmt=".2f"))
 
-def avg(reader, choosed_column: str, param: str):
+def avg(data: list, chosen_column: str, param: str):
     s = 0
     count = 0
-    for row in reader:
+    for row in data:
         try:
-            s += float(row[choosed_column])
+            s += float(row[chosen_column])
             count += 1
-        except:
-            return print(const.aggregate_error.format(param, choosed_column))
+        except ValueError:
+            return print(const.aggregate_error.format(param, chosen_column))
             
     
     return [[s / count]]
 
-def min_or_max(reader, choosed_column: str, param: str):
+def min_or_max(data: list, chosen_column: str, param: str):
     list_of_values = []
 
-    for row in reader:
+    for row in data:
         try:
-            list_of_values.append(float(row[choosed_column]))
-        except:
-            print(const.aggregate_error.format(param, choosed_column))
+            list_of_values.append(float(row[chosen_column]))
+        except ValueError:
+            print(const.aggregate_error.format(param, chosen_column))
             return
     if param == "min":
         return [[min(list_of_values)]]
     else:
         return [[max(list_of_values)]]
 
-def aggregate(file: str, aggregate_kwargs: str, columns: list, data: list) -> None:
-    if aggregate_kwargs == None: return
-
-    f = open(file)
-    reader = csv.DictReader(f)
-    if data != None:
-        reader = data
-        if len(data) == 0:
-            return
+def aggregate(data: list, aggregate_kwargs: str, columns: list) -> None:
+    if aggregate_kwargs is None: return
         
     output_value = None
-    choosed_column = find_column(aggregate_kwargs, columns)
+    chosen_column = find_column(aggregate_kwargs, columns)
     param = None
 
-    if choosed_column == None:
-        return print(const.column_error)
+    if chosen_column is None:
+        return print(const.column_error.format(aggregate_kwargs))
     else:
-        param = aggregate_kwargs[len(choosed_column) + 1:]
-
+        param = aggregate_kwargs[len(chosen_column) + 1:]
     
     if param not in ["avg", "min", "max"]:
         return print(const.aggregate_param_mistake)
         
-    
     if param == "avg":
-        output_value = avg(reader, choosed_column, param)
+        output_value = avg(data, chosen_column, param)
 
     elif param == "min" or param == "max":
-        output_value = min_or_max(reader, choosed_column, param)
+        output_value = min_or_max(data, chosen_column, param)
 
-    if output_value != None: print(tabulate(output_value, headers=[param], tablefmt="grid"), floatfmt=".2f")
+    if output_value is not None: print(tabulate(output_value, headers=[param], tablefmt="grid", floatfmt=".2f"))
 
-def where(file: str, where_kwargs: str, columns: list, show = True) -> None:
-    if where_kwargs == None: return
+def where(data: list, where_kwargs: str, columns: list, show = True) -> None:
+    if where_kwargs is None: return
 
-    choosed_column = find_column(where_kwargs, columns)
+    chosen_column = find_column(where_kwargs, columns)
     command = None
     param = None
 
 
-    if choosed_column == None:
-        return print(const.column_error)
+    if chosen_column is None:
+        return print(const.column_error.format(where_kwargs))
     else:
-        command = where_kwargs[len(choosed_column)]
-        param = where_kwargs[len(choosed_column) + 1:]
+        command = where_kwargs[len(chosen_column)]
+        param = where_kwargs[len(chosen_column) + 1:]
 
-    if command == None or command not in ["<", ">", "="]:
+    if command is None or command not in ["<", ">", "="]:
         return print(const.command_error)
         
     
-    f = open(file)
-    reader = csv.DictReader(f)
-    data = []
-    
+    output_data = []
+
     if command == "=":
-        for row in reader:
-            if row[choosed_column] == param:
-                data.append(list(row.values()))
+        for row in data:
+            if row[chosen_column] == param:
+                output_data.append(list(row.values()))
 
     elif command == ">":
-        for row in reader:
+        for row in data:
             try: 
-                if float(row[choosed_column]) > float(param):
-                    data.append(list(row.values()))
-            except:
-                return print(const.where_error.format(command, choosed_column))
-                
+                if float(row[chosen_column]) > float(param):
+                    output_data.append(list(row.values()))
+            except ValueError:
+                return print(const.where_error.format(command, chosen_column))
+
 
     elif command == "<":
-        for row in reader:
+        for row in data:
             try:
-                if float(row[choosed_column]) < float(param):
-                    data.append(list(row.values()))
-            except TypeError:
-                return print(const.where_error.format(command, choosed_column))
+                if float(row[chosen_column]) < float(param):
+                    output_data.append(list(row.values()))
+            except ValueError:
+                return print(const.where_error.format(command, chosen_column))
                 
 
     if show:
-        if len(data) > 0 : 
-            return print(tabulate(data, headers=columns, tablefmt="grid"), floatfmt=".2f")
+        if len(output_data) > 0 : 
+            return print(tabulate(output_data, headers=columns, tablefmt="grid", floatfmt=".2f"))
         else: 
-            return print(const.no_data)
+            return print(const.no_output_data)
     else:
-        return [{columns[i] : values[i] for i in range(len(columns))} for values in data]
+        return [{columns[i] : values[i] for i in range(len(columns))} for values in output_data]
 
 
 def start(parse_args, data = None):
     try:
-        file, columns = input_file(parse_args.file)
-    except:
+        data, columns = input_file(parse_args.file)
+    except FileNotFoundError:
         return print(const.file_error)
     
-    
+
     where_kwargs = parse_args.where
     aggregate_kwargs = parse_args.aggregate
 
-    if where_kwargs == None and aggregate_kwargs == None: 
-        return show(file, columns)
+    if where_kwargs is None and aggregate_kwargs is None: 
+        return show(data, columns)
 
-    if aggregate_kwargs != None:
-        data = where(file, where_kwargs, columns, show = False)
+    if aggregate_kwargs is not None:
+        data = where(data, where_kwargs, columns, show = False)
     else:
-        return where(file, where_kwargs, columns)
+        return where(data, where_kwargs, columns)
     
-    aggregate(file, aggregate_kwargs, columns, data)
+    aggregate(data, aggregate_kwargs, columns)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -168,7 +158,7 @@ def main():
 
     parse_args = parser.parse_args()
 
-    if parse_args.file == None: return parser.print_help()
+    if parse_args.file is None: return parser.print_help()
 
     start(parse_args)
 
